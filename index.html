@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAssist - Agente de Triagem Hospitalar</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+    <div class="config-sidebar">
+        <div class="config-title">
+            <i data-lucide="sliders"></i>
+            <span>Ajustes do Agente</span>
+        </div>
+        
+        <div class="form-group">
+            <label for="apiKey">Chave de API do OpenRouter</label>
+            <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+        </div>
+
+        <div class="form-group">
+            <label for="systemPrompt">Prompt do Sistema (Comportamento)</label>
+            <textarea id="systemPrompt" rows="12" placeholder="Defina as regras médicas do bot..."></textarea>
+        </div>
+
+        <button class="btn-save" onclick="salvarConfiguracoes()">Aplicar Configurações</button>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator"></div>
+            <div>
+                <h2>MedAssist - IA</h2>
+                <p>Triagem e Atendimento Virtual Hospitalar</p>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message agent">Olá! Sou o MedAssist, o seu assistente virtual de atendimento hospitalar. Como posso ajudar hoje?</div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="Escreva aqui os seus sintomas ou dúvidas..." onkeypress="checarEnter(event)">
+            <button class="btn-send" onclick="enviarMensagem()">
+                <i data-lucide="send"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
