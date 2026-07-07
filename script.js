@@ -24,12 +24,12 @@ function salvarConfiguracoes() {
     localStorage.setItem('hospital_openrouter_key', key);
     localStorage.setItem('hospital_system_prompt', prompt);
     
-    // Reinicia histórico com o novo prompt de sistema
+    // Reinicia o histórico com as novas instruções
     historicoChat = [{ role: "system", content: prompt }];
-    alert("Configurações aplicadas com sucesso e o chat foi reiniciado!");
+    alert("Configurações aplicadas com sucesso e chat reiniciado!");
 }
 
-function checarEnter(event) {
+function verificarEnter(event) {
     if (event.key === 'Enter') enviarMensagem();
 }
 
@@ -38,23 +38,28 @@ async function enviarMensagem() {
     const mensagemTexto = inputElement.value.trim();
     const apiKey = localStorage.getItem('hospital_openrouter_key');
 
+    // Se o input estiver vazio, não faz nada
     if (!mensagemTexto) return;
 
+    // Se não tiver chave salva, avisa o usuário
     if (!apiKey) {
         alert("Por favor, insira e aplique sua Chave de API do OpenRouter no painel lateral.");
         return;
     }
 
-    adicionarMensagem(mensagemTexto, 'user');
+    // Adiciona a mensagem do usuário na tela
+    adicionarNaTela(mensagemTexto, 'user');
     inputElement.value = '';
 
+    // Adiciona ao histórico do chat (CORRIGIDO: mensagemTexto)
     historicoChat.push({ role: "user", content: mensagemTexto });
 
+    // Cria o indicador visual de carregamento
     const chatMessages = document.getElementById('chatMessages');
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message agent loading';
     loadingDiv.id = 'loadingIndicator';
-    loadingDiv.innerText = 'A processar triagem...';
+    loadingDiv.innerText = 'Analisando triagem...';
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -63,38 +68,41 @@ async function enviarMensagem() {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'MedAssist Hospitalar'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: "meta-llama/llama-3-8b-instruct:free",
                 messages: historicoChat,
-                temperature: 0.5,
+                temperature: 0.4,
                 max_tokens: 500
             })
         });
 
-        if (!response.ok) throw new Error("Erro na comunicação com o OpenRouter.");
+        if (!response.ok) {
+            const erroTxt = await response.text();
+            throw new Error(`Erro na API: ${response.status} - ${erroTxt}`);
+        }
 
         const dados = await response.json();
         const respostaBot = dados.choices[0].message.content;
 
+        // Remove o loading e insere a resposta do bot
         document.getElementById('loadingIndicator').remove();
-        adicionarMensagem(respostaBot, 'agent');
+        adicionarNaTela(respostaBot, 'agent');
 
+        // Guarda a resposta do bot no histórico para manter o contexto
         historicoChat.push({ role: "assistant", content: respostaBot });
 
     } catch (error) {
-        console.error(error);
+        console.error("Detalhes do erro:", error);
         if (document.getElementById('loadingIndicator')) {
             document.getElementById('loadingIndicator').remove();
         }
-        adicionarMensagem("De momento, ocorreu um problema ao processar a sua solicitação. Por favor, verifique sua chave ou tente mais tarde.", 'agent');
+        adicionarNaTela("Houve um erro de conexão. Verifique se sua chave está correta ou se tem saldo no OpenRouter.", 'agent');
     }
 }
 
-function adicionarMensagem(texto, remetente) {
+function adicionarNaTela(texto, remetente) {
     const chatMessages = document.getElementById('chatMessages');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${remetente}`;
