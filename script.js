@@ -7,34 +7,73 @@ Regras estritas:
 2. NUNCA dê diagnósticos médicos definitivos ou prescreva medicamentos.
 3. Se o paciente relatar dor no peito crônica, falta de ar grave ou perda de consciência, oriente IMEDIATAMENTE a buscar o Pronto Socorro de emergência.`;
 
-// Carrega configurações salvas ou define padrões
-document.getElementById('systemPrompt').value = localStorage.getItem('med_system_prompt') || promptPadrao;
-document.getElementById('apiKey').value = localStorage.getItem('med_key_groq') || '';
-document.getElementById('modelSelect').value = localStorage.getItem('med_model') || 'llama-3.3-70b-versatile';
+// Mapeamento de modelos 100% ATUALIZADOS e ATIVOS para 2026
+const modelosPorProvedor = {
+    groq: [
+        { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Alta Precisão)" },
+        { value: "llama-3.1-8b-instant", label: "Llama 3.1 8B (Ultra Rápido)" }
+    ],
+    openrouter: [
+        { value: "google/gemini-2.5-flash:free", label: "Gemini 2.5 Flash (Grátis e Estável)" },
+        { value: "deepseek/deepseek-chat:free", label: "DeepSeek V3 (Grátis)" },
+        { value: "meta-llama/llama-3.2-3b-instruct:free", label: "Llama 3.2 3B Leve (Grátis)" }
+    ]
+};
 
+// Carregar estado salvo ou inicializar padrões
+document.getElementById('systemPrompt').value = localStorage.getItem('med_system_prompt') || promptPadrao;
+document.getElementById('providerSelect').value = localStorage.getItem('med_provider') || 'groq';
+
+// Atualizar a lista de modelos na interface com base no provedor carregado
+atualizarModelosDisponiveis();
+document.getElementById('modelSelect').value = localStorage.getItem('med_model') || modelosPorProvedor[document.getElementById('providerSelect').value][0].value;
+recuperarChaveSalva();
 atualizarSubtituloHeader();
 
 let historicoChat = [
     { role: "system", content: document.getElementById('systemPrompt').value }
 ];
 
+function atualizarModelosDisponiveis() {
+    const provedor = document.getElementById('providerSelect').value;
+    const modelSelect = document.getElementById('modelSelect');
+    
+    modelSelect.innerHTML = '';
+    modelosPorProvedor[provedor].forEach(modelo => {
+        const option = document.createElement('option');
+        option.value = modelo.value;
+        option.innerText = modelo.label;
+        modelSelect.appendChild(option);
+    });
+    
+    recuperarChaveSalva();
+}
+
+function recuperarChaveSalva() {
+    const provedor = document.getElementById('providerSelect').value;
+    document.getElementById('apiKey').value = localStorage.getItem(`med_key_${provedor}`) || '';
+}
+
 function atualizarSubtituloHeader() {
+    const provedor = document.getElementById('providerSelect').value;
     const modelo = document.getElementById('modelSelect').value;
-    document.getElementById('subtituloHeader').innerText = `Operando via GROQ | Modelo: ${modelo}`;
+    document.getElementById('subtituloHeader').innerText = `Operando via ${provedor.toUpperCase()} | Modelo: ${modelo.split('/').pop()}`;
 }
 
 function salvarConfiguracoes() {
+    const provedor = document.getElementById('providerSelect').value;
     const chave = document.getElementById('apiKey').value.trim();
     const modelo = document.getElementById('modelSelect').value;
     const prompt = document.getElementById('systemPrompt').value.trim();
     
-    localStorage.setItem('med_key_groq', chave);
+    localStorage.setItem('med_provider', provedor);
+    localStorage.setItem(`med_key_${provedor}`, chave);
     localStorage.setItem('med_model', modelo);
     localStorage.setItem('med_system_prompt', prompt);
     
     historicoChat = [{ role: "system", content: prompt }];
     atualizarSubtituloHeader();
-    alert("Configurações aplicadas com sucesso e histórico reiniciado!");
+    alert("Configurações aplicadas! O histórico do chat foi reiniciado.");
 }
 
 function verificarEnter(event) {
@@ -44,17 +83,19 @@ function verificarEnter(event) {
 async function enviarMensagem() {
     const inputElement = document.getElementById('userInput');
     const mensagemTexto = inputElement.value.trim();
-    const apiKey = localStorage.getItem('med_key_groq');
-    const modeloSelecionado = localStorage.getItem('med_model') || 'llama-3.3-70b-versatile';
+    
+    const provedor = localStorage.getItem('med_provider') || 'groq';
+    const apiKey = localStorage.getItem(`med_key_${provedor}`);
+    const modeloSelecionado = localStorage.getItem('med_model');
 
     if (!mensagemTexto) return;
 
     if (!apiKey) {
-        alert("Por favor, insira e aplique sua Chave de API do Groq no painel lateral.");
+        alert(`Insira a chave de API para o ${provedor.toUpperCase()} no painel lateral e clique em Aplicar.`);
         return;
     }
 
-    adicionarMensagem(mensagemTexto, 'user');
+    adicionarNaTela(mensagemTexto, 'user');
     inputElement.value = '';
 
     historicoChat.push({ role: "user", content: mensagemTexto });
@@ -63,48 +104,49 @@ async function enviarMensagem() {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message agent loading';
     loadingDiv.id = 'loadingIndicator';
-    loadingDiv.innerText = 'Analisando com Groq...';
+    loadingDiv.innerText = `Buscando resposta via ${provedor.toUpperCase()}...`;
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
+    const urlEndpoint = provedor === 'groq' 
+        ? 'https://api.groq.com/openai/v1/chat/completions' 
+        : 'https://openrouter.ai/api/v1/chat/completions';
+
     try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch('/.netlify/functions/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
-            },
+                    },
             body: JSON.stringify({
                 model: modeloSelecionado,
-                messages: historicoChat,
-                temperature: 0.4,
-                max_tokens: 500
+                messages: historicoChat
             })
         });
 
         if (!response.ok) {
             const erroTxt = await response.text();
-            throw new Error(`Erro ${response.status}: ${erroTxt}`);
+            throw new Error(`Código ${response.status} - ${erroTxt}`);
         }
 
         const dados = await response.json();
         const respostaBot = dados.choices[0].message.content;
 
         document.getElementById('loadingIndicator').remove();
-        adicionarMensagem(respostaBot, 'agent');
+        adicionarNaTela(respostaBot, 'agent');
 
         historicoChat.push({ role: "assistant", content: respostaBot });
 
     } catch (error) {
-        console.error(error);
         if (document.getElementById('loadingIndicator')) {
             document.getElementById('loadingIndicator').remove();
         }
-        adicionarMensagem(`Erro na comunicação: ${error.message}`, 'agent');
+        // ATUALIZAÇÃO SÊNIOR: Cospe o erro real e exato do sistema na interface
+        adicionarNaTela(`DIAGNÓSTICO REAL: ${error.message}`, 'agent');
     }
 }
 
-function adicionarMensagem(texto, remetente) {
+function adicionarNaTela(texto, remetente) {
     const chatMessages = document.getElementById('chatMessages');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${remetente}`;
