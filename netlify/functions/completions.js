@@ -1,5 +1,5 @@
 exports.handler = async function(event, context) {
-    // O Netlify esconde a chave aqui dentro do processo seguro dele
+    // Pega a chave que você salvou no painel do Netlify
     const apiKey = process.env.GROQ_API_KEY; 
     
     if (event.httpMethod !== "POST") {
@@ -9,6 +9,7 @@ exports.handler = async function(event, context) {
     try {
         const body = JSON.parse(event.body);
 
+        // Faz a requisição para o Groq de forma escondida pelo servidor
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -24,9 +25,13 @@ exports.handler = async function(event, context) {
         });
 
         const dados = await response.json();
+        
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*" 
+            },
             body: JSON.stringify(dados)
         };
     } catch (error) {
