@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedAssist - Triagem Hospitalar</title>
+    <title>MedAssist - Agente de Triagem Hospitalar</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 </head>
@@ -13,33 +13,41 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <i data-lucide="sliders"></i>
-                <h3>Ajustes do Agente</h3>
+                <h3>Configurações do Agente</h3>
             </div>
             
             <div class="input-group">
-                <label for="apiKey">Chave API OpenRouter</label>
-                <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+                <label for="apiKey">Chave API Groq</label>
+                <input type="password" id="apiKey" placeholder="gsk_...">
             </div>
 
             <div class="input-group">
-                <label for="systemPrompt">Prompt do Sistema (Instruções)</label>
-                <textarea id="systemPrompt" rows="12"></textarea>
+                <label for="modelSelect">Versão da IA (Modelo)</label>
+                <select id="modelSelect">
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Alta Precisão)</option>
+                    <option value="llama-3.1-8b-instant">Llama 3.1 8B (Ultra Rápido)</option>
+                </select>
             </div>
 
-            <button class="btn-save" onclick="salvarConfiguracoes()">Aplicar Alterações</button>
+            <div class="input-group">
+                <label for="systemPrompt">Prompt do Sistema (Comportamento)</label>
+                <textarea id="systemPrompt" rows="10"></textarea>
+            </div>
+
+            <button class="btn-save" onclick="salvarConfiguracoes()">Aplicar Configurações</button>
         </div>
 
         <div class="chat-area">
             <div class="chat-header">
                 <div class="status-dot"></div>
                 <div>
-                    <h2>MedAssist - IA</h2>
-                    <p>Triagem e Atendimento Virtual Hospitalar</p>
+                    <h2>MedAssist - IA (Groq)</h2>
+                    <p id="subtituloHeader">Operando via GROQ</p>
                 </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
-                <div class="message agent">Olá! Sou o MedAssist, assistente virtual de triagem. Como posso ajudar você hoje?</div>
+                <div class="message agent">Olá! Sou o MedAssist. Configure sua chave API do Groq ao lado para começarmos a triagem virtual.</div>
             </div>
 
             <div class="chat-input-container">
